@@ -13,7 +13,7 @@ theme: jekyll-theme-cayman
         background-image: url('assets/cover.jpg');
         background-size: cover;
         background-position: center center;
-        box-shadow: inset 0 0 0 1000px rgba(0,0,0,0.3);
+        box-shadow: inset 0 0 0 1000px rgba(0,0,0,0.20);
     }
     .project-name {
         color: #ffffff;
@@ -76,7 +76,7 @@ theme: jekyll-theme-cayman
         display: flex;
         flex-direction: row;
         height: 55vh;
-        min-height: 600px;
+        min-height: 700px;
         max-height: 1000px;
         background-color: #ffffff;
         border: 1px solid #ddd;
@@ -97,8 +97,8 @@ theme: jekyll-theme-cayman
 
     .text-col {
         flex: 1;
-        min-width: 300px;
-        max-width: 450px;
+        min-width: 480px;
+        max-width: 550px;
         background-color: #f8f9fa;
         border-right: 1px solid #eaeaea;
         overflow-y: auto;
@@ -283,7 +283,7 @@ theme: jekyll-theme-cayman
 
 <p>The field of artificial intelligence (AI) has been revolutionized by replacing hand-crafted components with those learned from data and experience. The next natural step is to allow the learning algorithms themselves to be learned, from experience.</p>
 
-<img src="assets/intro_timeline.png" style="width: 100%;">
+<img src="assets/timeline.jpg" style="width: 100%;">
 
 <p>Many of the most successful AI agents are based on reinforcement learning (RL), in which agents learn by interacting with environments, achieving numerous landmarks including the mastery of complex competitive games such as Go, chess, and StarCraft.</p>
 
@@ -318,20 +318,20 @@ theme: jekyll-theme-cayman
 <div class="static-wrapper" id="interactive-results">
     <div class="text-col">
         <div class="stage-description active-step" data-step="1">
-            <h3>1. Meta-learn Disco57</h3>
-            <p>We start by training the Disco57 update rule on a diverse set of standard Atari57 environments.</p>
+            <h4>1. Meta-learn Disco57 on Atari57</h4>
+            <p>We train Disco57 update rule on a diverse set of standard Atari57 environments.</p>
         </div>
         <div class="stage-description" data-step="2">
-            <h3>2. Evaluate Disco57</h3>
-            <p>Disco57 is evaluated zero-shot on completely unseen ProcGen and DMLab-30 domains to measure generalization capabilities.</p>
+            <h4>2. Evaluate Disco57</h4>
+            <p>Disco57 is evaluated <b>zero-shot</b> on unseen ProcGen and DMLab-30 domains to measure generalization capabilities.</p>
         </div>
         <div class="stage-description" data-step="3">
-            <h3>3. Expand training set: meta-learn Disco103</h3>
-            <p>We iteratively expand the training domains with the more challenging ProcGen and DMLab-30 to meta-learn Disco103.</p>
+            <h4>3. Expand training set: meta-learn Disco103</h4>
+            <p>We expand the training domains with the more challenging ProcGen and DMLab-30 to meta-learn Disco103.</p>
         </div>
         <div class="stage-description" data-step="4">
-            <h3>4. Evaluate on unseen domains</h3>
-            <p>We evaluate both Disco57 and Disco103 on unseen domains: Crafter, Nethack, Sokoban.</p>
+            <h4>4. Evaluate on unseen domains</h4>
+            <p>We evaluate both Disco57 and Disco103 <b>on unseen domains</b>: Crafter, Nethack, Sokoban.</p>
         </div>
     </div>
     <div class="figure-col" id="figure-container">
