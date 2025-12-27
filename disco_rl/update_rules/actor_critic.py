@@ -13,10 +13,9 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Actor-critic update rule.
+"""Actor-critic 更新规则。
 
-This is an example of the well-known Actor-Critic algorithm implemented as an
-update rule.
+这是作为更新规则实现的众所周知的 Actor-Critic 算法的示例。
 """
 
 import chex
@@ -32,7 +31,7 @@ from disco_rl.value_fns import value_utils
 
 
 class ActorCritic(base.UpdateRule):
-  """Various actor-critic baselines."""
+  """各种 Actor-critic 基线。"""
 
   def __init__(
       self,
@@ -45,20 +44,21 @@ class ActorCritic(base.UpdateRule):
       moving_average_decay: float = 0.99,
       moving_average_eps: float = 1e-6,
   ) -> None:
-    """Configure the actor-critic module.
+    """配置 actor-critic 模块。
 
     Args:
-      categorical_value: use categorical value function if true.
-      num_bins: number of bins for categorical value. This is ignored when
-        categorical_value is false.
-      max_abs_value: maximum absolute value representable by the categorical
-        value. This is ignored when categorical_value is False; must be set when
-        categorical_value is True.
-      nonlinear_value_transform: apply non-linear transform to value if true.
-      normalize_adv: normalize advantange for policy gradient if true.
-      normalize_td: normalize TD for value loss if true.
-      moving_average_decay: moving average decay for advantage and TD.
-      moving_average_eps: moving average epsilon for advantage and TD.
+      categorical_value: 如果为真，则使用分类价值函数。
+      num_bins: 分类价值的箱数。当 categorical_value 为 false 时忽略。
+      max_abs_value: 分类价值可表示的最大绝对值。当 categorical_value 为 False 时忽略；
+        当 categorical_value 为 True 时必须设置。
+      nonlinear_value_transform: 如果为真，则对值应用非线性变换。
+      normalize_adv: 如果为真，则归一化策略梯度的优势。
+      normalize_td: 如果为真，则归一化价值损失的 TD。
+      moving_average_decay: 优势和 TD 的移动平均衰减。
+      moving_average_eps: 优势和 TD 的移动平均 epsilon。
+
+    Raises:
+      ValueError: 如果 normalize_td 和 categorical_value 同时使用。
     """
     if normalize_td and categorical_value:
       raise ValueError(
@@ -82,19 +82,27 @@ class ActorCritic(base.UpdateRule):
   def init_params(
       self, rng: chex.PRNGKey
   ) -> tuple[types.MetaParams, chex.ArrayTree]:
+    """初始化参数。
+
+    Args:
+      rng: 随机密钥。
+
+    Returns:
+      元参数和初始状态。
+    """
     del rng
     return {'dummy': jnp.array(0.0)}, {}
 
   def flat_output_spec(
       self, single_action_spec: types.ActionSpec
   ) -> types.Specs:
-    """Returns the agent's unconditional output specs.
+    """返回代理的无条件输出规范。
 
     Args:
-      single_action_spec: An action spec.
+      single_action_spec: 一个动作规范。
 
     Returns:
-      A nested dict with tuples specifying output specs.
+      一个指定输出规范的元组嵌套字典。
     """
     return dict(
         logits=utils.get_logits_specs(single_action_spec),
@@ -106,13 +114,13 @@ class ActorCritic(base.UpdateRule):
   def model_output_spec(
       self, single_action_spec: types.ActionSpec
   ) -> types.Specs:
-    """Returns the agent's action-conditional output specs.
+    """返回代理的动作条件输出规范。
 
     Args:
-      single_action_spec: An action spec.
+      single_action_spec: 一个动作规范。
 
     Returns:
-      A nested dict with tuples specifying model output specs.
+      一个指定模型输出规范的元组嵌套字典。
     """
     del single_action_spec
     return dict()
@@ -122,6 +130,15 @@ class ActorCritic(base.UpdateRule):
       rng: chex.PRNGKey,
       params: types.AgentParams,
   ) -> types.MetaState:
+    """初始化元状态。
+
+    Args:
+      rng: 随机密钥。
+      params: 代理参数。
+
+    Returns:
+      元状态。
+    """
     del rng
     meta_state = dict()
     meta_state['adv_ema_state'] = self._adv_ema.init_state()
@@ -140,7 +157,22 @@ class ActorCritic(base.UpdateRule):
       rng: chex.PRNGKey,
       axis_name: str | None = None,
   ) -> tuple[types.UpdateRuleOuts, types.MetaState]:
-    """Prepare quantities for the loss (no meta network)."""
+    """准备损失所需的量（无元网络）。
+
+    Args:
+      meta_params: 元参数。
+      params: 代理参数。
+      state: 代理状态。
+      meta_state: 元状态。
+      rollout: rollout。
+      hyper_params: 超参数。
+      unroll_policy_fn: 策略展开函数。
+      rng: 随机密钥。
+      axis_name: 轴名称。
+
+    Returns:
+      更新规则输出和新元状态。
+    """
     del meta_params
 
     value_outs, adv_ema_state, td_ema_state = value_utils.get_value_outs(
@@ -184,7 +216,17 @@ class ActorCritic(base.UpdateRule):
       hyper_params: types.HyperParams,
       backprop: bool,
   ) -> tuple[chex.Array, types.UpdateRuleLog]:
-    """Construct policy and value loss."""
+    """构建策略和价值损失。
+
+    Args:
+      rollout: rollout。
+      meta_out: 元输出。
+      hyper_params: 超参数。
+      backprop: 是否反向传播。
+
+    Returns:
+      每步损失和日志。
+    """
     del backprop
     actions = rollout.actions[:-1]
     logits = rollout.agent_out['logits'][:-1]

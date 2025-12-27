@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Base class for update rules. See `UpdateRule`'s docstrings."""
+"""更新规则的基类。参见 `UpdateRule` 的文档字符串。"""
 
 import chex
 from dm_env import specs as dm_env_specs
@@ -31,9 +31,9 @@ def get_agent_out_spec(
     flat_out_spec: types.Specs,
     model_out_spec: types.Specs,
 ) -> types.Specs:
-  """Constructs a tree of shapes of outputs for the provided specs.
+  """为提供的规范构建输出形状树。
 
-  Example:
+  示例:
       >> action_spec = specs.BoundedArray((), int, minimum=0, maximum=A-1)
       >> unconditional_output_spec = {'logits': (A,),
                                       'y': (Y,),
@@ -50,12 +50,12 @@ def get_agent_out_spec(
          }
 
   Args:
-      action_spec: An action spec.
-      flat_out_spec: A nested dict of agent's flat output shapes.
-      model_out_spec: A nested dict of agent's model output shapes.
+      action_spec: 一个动作规范。
+      flat_out_spec: 代理平面输出形状的嵌套字典。
+      model_out_spec: 代理模型输出形状的嵌套字典。
 
   Returns:
-      A nested dict with shapes specifying agent's total output shapes.
+      一个嵌套字典，其中形状指定了代理的总输出形状。
   """
   if set(flat_out_spec.keys()).intersection(set(model_out_spec.keys())):
     raise ValueError(
@@ -71,7 +71,7 @@ def get_agent_out_spec(
 
 
 class UpdateRule:
-  """Base class for update rule."""
+  """更新规则的基类。"""
 
   def _get_dummy_input(
       self,
@@ -79,7 +79,16 @@ class UpdateRule:
       include_value_out: bool = False,
       include_agent_adv: bool = False,
   ) -> types.UpdateRuleInputs:
-    """Generate a dummy meta-network input for initialization."""
+    """生成用于初始化的虚拟元网络输入。
+
+    Args:
+      include_behaviour_out: 是否包含行为输出。
+      include_value_out: 是否包含价值输出。
+      include_agent_adv: 是否包含代理优势。
+
+    Returns:
+      虚拟更新规则输入。
+    """
     b = 1
     t = 2
     unroll_batch_shape = (t, b)
@@ -154,48 +163,48 @@ class UpdateRule:
   def init_params(
       self, rng: chex.PRNGKey
   ) -> tuple[types.MetaParams, chex.ArrayTree]:
-    """Initialize meta-parameters.
+    """初始化元参数。
 
     Args:
-      rng: random key.
+      rng: 随机密钥。
 
     Returns:
-      Meta-parameters and initial meta-network state.
+      元参数和初始元网络状态的元组。
     """
     raise NotImplementedError
 
   def flat_output_spec(self, action_spec: types.ActionSpec) -> types.Specs:
-    """Returns the agent's unconditional output specs.
+    """返回代理的无条件输出规范。
 
     Args:
-      action_spec: An action spec.
+      action_spec: 一个动作规范。
 
     Returns:
-      A nested dict with tuples specifying output specs.
+      一个指定输出规范的元组嵌套字典。
     """
     del action_spec
     return dict()
 
   def model_output_spec(self, action_spec: types.ActionSpec) -> types.Specs:
-    """Returns the agent's action-conditional output specs.
+    """返回代理的动作条件输出规范。
 
     Args:
-      action_spec: An action spec.
+      action_spec: 一个动作规范。
 
     Returns:
-      A nested dict with tuples specifying model output specs.
+      一个指定模型输出规范的元组嵌套字典。
     """
     del action_spec
     return dict()
 
   def agent_output_spec(self, action_spec: types.ActionSpec) -> types.Specs:
-    """Returns the agent total outputs' specs.
+    """返回代理总输出的规范。
 
     Args:
-      action_spec: An action spec.
+      action_spec: 一个动作规范。
 
     Returns:
-      A pair of dicts with specs specifying agent's total output specs.
+      一对指定代理总输出规范的字典。
     """
     return get_agent_out_spec(
         action_spec=action_spec,
@@ -208,14 +217,14 @@ class UpdateRule:
       rng: chex.PRNGKey,
       params: types.AgentParams,
   ) -> types.MetaState:
-    """The agent initial meta state.
+    """代理初始元状态。
 
     Args:
-      rng: random key.
-      params: agent params.
+      rng: 随机密钥。
+      params: 代理参数。
 
     Returns:
-      An array tree with meta state.
+      具有元状态的数组树。
     """
     raise NotImplementedError
 
@@ -231,22 +240,21 @@ class UpdateRule:
       rng: chex.PRNGKey,
       axis_name: str | None,
   ) -> tuple[types.UpdateRuleOuts, types.MetaState]:
-    """Unroll the meta network to prepare for the agent's loss.
+    """展开元网络以准备代理的损失。
 
     Args:
-      meta_params: meta parameters.
-      params: agent parameters.
-      state: state of the agent.
-      meta_state: meta state of the agent.
-      rollout: rollout. [T, B, ...] and [T+1, B, ...] for `agent_out`
-      hyper_params: hyper_params for the agent loss.
-      unroll_policy_fn: agent's policy unroll function.
-      rng: random key.
-      axis_name: an axis name to use in collective ops, if runs under `pmap`.
+      meta_params: 元参数。
+      params: 代理参数。
+      state: 代理状态。
+      meta_state: 代理元状态。
+      rollout: rollout。 [T, B, ...] 和 [T+1, B, ...] 用于 `agent_out`。
+      hyper_params: 代理损失的超参数。
+      unroll_policy_fn: 代理的策略展开函数。
+      rng: 随机密钥。
+      axis_name: 在集合操作中使用的轴名称（如果在 `pmap` 下运行）。
 
     Returns:
-      The output of meta network. [T, B, ...]
-      An updated meta state.
+      元网络的输出 [T, B, ...] 和更新后的元状态。
     """
     raise NotImplementedError
 
@@ -257,16 +265,16 @@ class UpdateRule:
       hyper_params: types.HyperParams,
       backprop: bool,
   ) -> tuple[chex.Array, types.UpdateRuleLog]:
-    """The agent loss.
+    """代理损失。
 
     Args:
-      rollout: rollout with reward, discount, etc. [T, B, ...]
-      meta_out: meta network output along the rollout. [T, B, ...]
-      hyper_params: hyper_params for the agent loss.
-      backprop: whether to make the loss differentiable or not.
+      rollout: 带有奖励、折扣等的 rollout。[T, B, ...]
+      meta_out: 沿 rollout 的元网络输出。[T, B, ...]
+      hyper_params: 代理损失的超参数。
+      backprop: 是否使损失可微。
 
     Returns:
-      Loss per step (a tensor) and logs.
+      每步损失（张量）和日志。
     """
     raise NotImplementedError
 
@@ -276,15 +284,15 @@ class UpdateRule:
       meta_out: types.UpdateRuleOuts | None,
       hyper_params: types.HyperParams,
   ) -> tuple[chex.Array, types.UpdateRuleLog]:
-    """An optional part of the agent loss which shouldn't receive metagradients.
+    """代理损失的可选部分，不应接收元梯度。
 
     Args:
-      rollout: rollout with reward, discount, etc. [T, B, ...]
-      meta_out: meta network output along the rollout. [T, B, ...]
-      hyper_params: hyper_params for the agent loss.
+      rollout: 带有奖励、折扣等的 rollout。[T, B, ...]
+      meta_out: 沿 rollout 的元网络输出。[T, B, ...]
+      hyper_params: 代理损失的超参数。
 
     Returns:
-      Loss per step (a tensor) and logs.
+      每步损失（张量）和日志。
     """
     del meta_out, hyper_params
     return jnp.zeros_like(rollout.rewards), {}
@@ -302,22 +310,22 @@ class UpdateRule:
       axis_name: str | None,
       backprop: bool = False,
   ) -> tuple[chex.Array, types.MetaState, types.UpdateRuleLog]:
-    """The agent loss from rollout and agent output.
+    """从 rollout 和代理输出计算代理损失。
 
     Args:
-      meta_params: meta parameters.
-      params: agent parameters.
-      state: state of the agent.
-      rollout: rollout with reward, discount, etc. [T+1, B, ...]
-      hyper_params: scalar hyper_params for the agent loss.
-      meta_state: meta state of the agent.
-      unroll_policy_fn: agent's policy unroll function.
-      rng: random key.
-      axis_name: an axis name to use in collective ops, if runs under `pmap`.
-      backprop: whether to make the loss differentiable wrt meta_params or not.
+      meta_params: 元参数。
+      params: 代理参数。
+      state: 代理状态。
+      rollout: 带有奖励、折扣等的 rollout。[T+1, B, ...]
+      hyper_params: 代理损失的标量超参数。
+      meta_state: 代理元状态。
+      unroll_policy_fn: 代理的策略展开函数。
+      rng: 随机密钥。
+      axis_name: 在集合操作中使用的轴名称（如果在 `pmap` 下运行）。
+      backprop: 是否使损失相对于 meta_params 可微。
 
     Returns:
-      A tuple (per-step loss, meta_state, log).
+      一个元组 (每步损失, 元状态, 日志)。
     """
     meta_out, new_meta_state = self.unroll_meta_net(
         meta_params=meta_params,

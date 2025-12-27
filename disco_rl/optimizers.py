@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Optimizers."""
+"""优化器。"""
 
 import jax
 from jax import numpy as jnp
@@ -25,18 +25,18 @@ def scale_by_adam_sg_denom(
     b2: float = 0.999,
     eps: float = 1e-8,
 ) -> optax.GradientTransformation:
-  """Adam grad rescaling; but denominator does not receive (meta-)gradients.
+  """Adam 梯度重新缩放；但分母不接收（元）梯度。
 
-  References:
+  参考文献:
     [Kingma et al, 2014](https://arxiv.org/abs/1412.6980)
 
   Args:
-    b1: decay rate for the exponentially weighted average of grads.
-    b2: decay rate for the exponentially weighted average of squared grads.
-    eps: term added to the denominator to improve numerical stability.
+    b1: 梯度指数加权平均的衰减率。
+    b2: 梯度平方指数加权平均的衰减率。
+    eps: 添加到分母以提高数值稳定性的项。
 
   Returns:
-    An (init_fn, update_fn) tuple.
+    一个 (init_fn, update_fn) 元组。
   """
 
   def init_fn(params):

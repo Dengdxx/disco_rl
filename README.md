@@ -1,24 +1,20 @@
-# DiscoRL: Discovering State-of-the-art Reinforcement Learning Algorithms
+# DiscoRL：发现最先进的强化学习算法
 
-This repository contains accompanying code for the *"Discovering
- State-of-the-art Reinforcement Learning Algorithms"* Nature publication.
+本仓库包含 Nature 出版物 *["Discovering State-of-the-art Reinforcement Learning Algorithms"](https://www.nature.com/articles/s41586-025-09761-x)* 的配套代码。
 
-It provides a minimal JAX harness for the DiscoRL setup together with the
- original meta-learned weights for the *Disco103* discovered update rule.
+它提供了一个用于 DiscoRL 设置的最小 JAX 工具包，以及 *Disco103* 发现的更新规则的原始元学习权重。
 
-The harness supports both:
+该工具包支持：
 
--   **Meta-evaluation**: training an agent using the *Disco103* discovered RL
-    update rule, using the `colabs/eval.ipynb` notebook [![Open In](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/google-deepmind/disco_rl/blob/master/colabs/eval.ipynb) and
+-   **元评估 (Meta-evaluation)**: 使用 *Disco103* 发现的 RL 更新规则训练代理，使用 `colabs/eval.ipynb` 笔记本 [![Open In](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/google-deepmind/disco_rl/blob/master/colabs/eval.ipynb)。
 
--   **Meta-training**: meta-learning a RL update rule from scratch or from a
-    pre-existing checkpoint, using the `colabs/meta_train.ipynb` notebook [![Open In](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/google-deepmind/disco_rl/blob/master/colabs/meta_train.ipynb)
+-   **元训练 (Meta-training)**: 从头开始或从现有的检查点元学习 RL 更新规则，使用 `colabs/meta_train.ipynb` 笔记本 [![Open In](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/google-deepmind/disco_rl/blob/master/colabs/meta_train.ipynb)。
 
-Note that it will not be actively maintained moving forward.
+请注意，后续将不会积极维护此项目。
 
-## Installation
+## 安装
 
-Set up a Python virtual environment and install the package:
+设置 Python 虚拟环境并安装包：
 
 ```bash
 python3 -m venv disco_rl_venv
@@ -26,40 +22,33 @@ source disco_rl_venv/bin/activate
 pip install git+https://github.com/google-deepmind/disco_rl.git
 ```
 
-The package can also be installed from colab:
+该包也可以从 colab 安装：
 
 ```bash
 !pip install git+https://github.com/google-deepmind/disco_rl.git
 ```
 
-## Usage
+## 用法
 
-The code is structured as follows:
+代码结构如下：
 
-* `environments/` contains the general interface for the environments that can
-  be used with the provided harness, and two implementations of `Catch`:
-  a CPU-based one and jittable;
+* `environments/` 包含可与提供的工具包一起使用的环境的通用接口，以及 `Catch` 的两种实现：基于 CPU 的和 jittable 的；
 
-* `networks/` includes a simple MLP network and LSTM-based components of the
-  DiscoRL models, all implemented in Haiku;
+* `networks/` 包括一个简单的 MLP 网络和 DiscoRL 模型的基于 LSTM 的组件，均在 Haiku 中实现；
 
-* `update_rules/` has implementations of the discovered rules, actor-critic, and
-  policy gradient;
+* `update_rules/` 包含已发现规则、actor-critic 和策略梯度的实现；
 
-* `value_fns/` contains value-function related utilities;
+* `value_fns/` 包含价值函数相关的实用程序；
 
-* `types.py`, `utils.py`, `optimizers.py` implement a basic functionality for
-  the harness;
+* `types.py`、`utils.py`、`optimizers.py` 实现了工具包的基本功能；
 
-* `agent.py` is a generic implementation of an RL agent which uses the update
-  rule's API for training, hence it is compatible with all the rules from
-  `update_rules/`.
+* `agent.py` 是 RL 代理的通用实现，它使用更新规则的 API 进行训练，因此它与 `update_rules/` 中的所有规则兼容。
 
-Detailed examples of usage can be found in the colabs above.
+用法的详细示例可以在上面的 colab 中找到。
 
-## Citation
+## 引用
 
-Please cite the original Nature paper:
+请引用原始 Nature 论文：
 
 ```
 @Article{DiscoRL2025,
@@ -71,23 +60,20 @@ Please cite the original Nature paper:
 }
 ```
 
-## License and disclaimer
+## 许可证和免责声明
 
 Copyright 2025 Google LLC
 
-All software is licensed under the Apache License, Version 2.0 (Apache 2.0);
-you may not use this file except in compliance with the Apache 2.0 license.
-You may obtain a copy of the Apache 2.0 license at:
+所有软件均根据 Apache 许可证 2.0 版 (Apache 2.0) 获得许可；
+除非遵守 Apache 2.0 许可，否则您不得使用此文件。
+您可以在以下网址获取 Apache 2.0 许可的副本：
 https://www.apache.org/licenses/LICENSE-2.0
 
-All other materials are licensed under the Creative Commons Attribution 4.0
-International License (CC-BY). You may obtain a copy of the CC-BY license at:
+所有其他材料均根据知识共享署名 4.0 国际许可证 (CC-BY) 获得许可。
+您可以在以下网址获取 CC-BY 许可的副本：
 https://creativecommons.org/licenses/by/4.0/legalcode
 
-Unless required by applicable law or agreed to in writing, all software and
-materials distributed here under the Apache 2.0 or CC-BY licenses are
-distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
-either express or implied. See the licenses for the specific language governing
-permissions and limitations under those licenses.
+除非适用法律要求或书面同意，否则根据 Apache 2.0 或 CC-BY 许可分发的软件和材料均按“原样”分发，不提供任何明示或暗示的保证或条件。
+请参阅许可证以了解管理这些许可证下的权限和限制的特定语言。
 
-This is not an official Google product.
+这不是 Google 的官方产品。

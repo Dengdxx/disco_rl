@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Wrapper for batching a single-stream environment."""
+"""用于批处理单流环境的包装器。"""
 
 import copy
 
@@ -30,10 +30,19 @@ from disco_rl.environments import base
 
 
 class UnusedEnvState:
+  """未使用的环境状态占位符。"""
   pass
 
 
 def _to_env_timestep(timestep: dm_env.TimeStep) -> types.EnvironmentTimestep:
+  """将 dm_env.TimeStep 转换为 EnvironmentTimestep。
+
+  Args:
+    timestep: dm_env 时间步。
+
+  Returns:
+    EnvironmentTimestep 实例。
+  """
   return types.EnvironmentTimestep(
       step_type=np.array(timestep.step_type, dtype=np.int32),
       reward=np.array(timestep.reward or 0.0),
@@ -42,12 +51,12 @@ def _to_env_timestep(timestep: dm_env.TimeStep) -> types.EnvironmentTimestep:
 
 
 class BatchedSingleStreamEnvironment(base.Environment):
-  """Wrapper for making a single-stream environment batched.
+  """用于使单流环境批处理化的包装器。
 
-  All operations are sequentially executed for all instances from the batch.
+  所有操作对批处理中的所有实例顺序执行。
 
   Attributes:
-    batch_size: a batch size.
+    batch_size: 批次大小。
   """
 
   def __init__(
@@ -56,6 +65,13 @@ class BatchedSingleStreamEnvironment(base.Environment):
       batch_size: int,
       env_settings: configdict.ConfigDict,
   ) -> None:
+    """初始化批处理环境。
+
+    Args:
+      env_class: 环境类。
+      batch_size: 批次大小。
+      env_settings: 环境设置。
+    """
     self.batch_size = batch_size
     self._num_envs = batch_size
     self._shape_prefix = (batch_size,)
@@ -82,6 +98,11 @@ class BatchedSingleStreamEnvironment(base.Environment):
     self._states = [env.reset(jax.random.PRNGKey(0))[1] for env in self._envs]
 
   def _stack_states(self) -> types.EnvironmentTimestep:
+    """堆叠各个环境的状态。
+
+    Returns:
+      批处理的环境时间步。
+    """
     states = jax.tree.map(
         lambda *xs: np.stack(xs).reshape(self._shape_prefix + xs[0].shape),
         *self._states,
@@ -91,6 +112,15 @@ class BatchedSingleStreamEnvironment(base.Environment):
   def step(
       self, state: UnusedEnvState | None, actions: chex.ArrayTree
   ) -> tuple[UnusedEnvState | None, types.EnvironmentTimestep]:
+    """执行一步。
+
+    Args:
+      state: 状态（未使用）。
+      actions: 动作。
+
+    Returns:
+      未使用状态和新的环境时间步的元组。
+    """
     del state
     chex.assert_tree_shape_prefix(actions, self._shape_prefix)
     actions = jax.tree.map(
@@ -105,12 +135,30 @@ class BatchedSingleStreamEnvironment(base.Environment):
   def reset(
       self, rng_key: chex.PRNGKey
   ) -> tuple[UnusedEnvState | None, types.EnvironmentTimestep]:
+    """重置环境。
+
+    Args:
+      rng_key: 随机数生成器密钥。
+
+    Returns:
+      未使用状态和初始环境时间步的元组。
+    """
     del rng_key
     self._states = [env.reset(jax.random.PRNGKey(0))[1] for env in self._envs]
     return UnusedEnvState(), self._stack_states()
 
   def single_action_spec(self) -> types.ActionSpec:
+    """返回单个动作规范。
+
+    Returns:
+      动作规范。
+    """
     return self._single_action_spec
 
   def single_observation_spec(self) -> types.Specs:
+    """返回单个观测规范。
+
+    Returns:
+      观测规范。
+    """
     return self._single_observation_spec

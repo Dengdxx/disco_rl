@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Value function for meta-learning."""
+"""元学习的价值函数。"""
 
 import chex
 import haiku as hk
@@ -29,13 +29,13 @@ from disco_rl.value_fns import value_utils
 
 
 class ValueFunction:
-  """Domain value function approximator.
+  """领域价值函数近似器。
 
-  Used only in meta-training.
+  仅用于元训练。
 
   Attributes:
-    config: a value function's config.
-    axis_name: (optional) an axis name to average over, if runs under `pmap`.
+    config: 价值函数配置。
+    axis_name: (可选) 如果在 `pmap` 下运行，则为平均轴名称。
   """
 
   _value_fn: types.PolicyNetwork
@@ -46,6 +46,12 @@ class ValueFunction:
       config: types.ValueFnConfig,
       axis_name: str | None,
   ) -> None:
+    """初始化价值函数。
+
+    Args:
+      config: 价值函数配置。
+      axis_name: 轴名称。
+    """
     self.config = config
     self.axis_name = axis_name
 
@@ -77,14 +83,17 @@ class ValueFunction:
   def initial_state(
       self, rng: chex.PRNGKey, dummy_observation: chex.ArrayTree
   ) -> types.ValueState:
-    """Initializes a value function state: parameters and optimizer state.
+    """初始化价值函数状态：参数和优化器状态。
 
     Args:
-      rng: a JAX random number key.
-      dummy_observation: dummy observations to use for the networks init.
+      rng: JAX 随机数密钥。
+      dummy_observation: 用于网络初始化的虚拟观测。
 
     Returns:
-      A value function state.
+      价值函数状态。
+
+    Raises:
+      ValueError: 如果状态不为空（不支持有状态网络）。
     """
     params, state = self._value_fn.init(rng, dummy_observation, None)
     if state:
@@ -112,7 +121,16 @@ class ValueFunction:
       types.EmaState | None,
       types.EmaState | None,
   ]:
-    """Runs forward pass of value network and gets value estimates."""
+    """运行价值网络的前向传递并获取价值估计。
+
+    Args:
+      value_state: 价值函数状态。
+      rollout: 演员 rollout。
+      target_logits: 目标 logits。
+
+    Returns:
+      包含价值输出、网络输出、优势 EMA 状态和 TD EMA 状态的元组。
+    """
     value_net_outputs, _ = hk.BatchApply(
         lambda x: self._value_fn.one_step(
             value_state.params, value_state.state, x, None
@@ -144,15 +162,15 @@ class ValueFunction:
       rollout: types.ActorRollout,
       target_logits: chex.Array,
   ) -> tuple[types.ValueState, types.ValueOuts, types.LogDict]:
-    """Updates value function state.
+    """更新价值函数状态。
 
     Args:
-      value_state: a value state to update.
-      rollout: a rollout to use in the update.
-      target_logits: target logits for the given rollout.
+      value_state: 要更新的价值状态。
+      rollout: 用于更新的 rollout。
+      target_logits: 给定 rollout 的目标 logits。
 
     Returns:
-      A tuple of an updated state, value outputs, and log.
+      更新后的状态、价值输出和日志的元组。
     """
 
     def value_loss_fn(v_params, value_state, rollout, target_logits):

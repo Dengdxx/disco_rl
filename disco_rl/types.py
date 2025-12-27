@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Types."""
+"""类型定义。"""
 
 from typing import Any, Callable, Mapping, Sequence
 
@@ -70,7 +70,19 @@ SampleActionFn = Callable[
 
 @chex.dataclass
 class ValueFnConfig:
-  """Value function config."""
+  """价值函数配置。
+
+  Attributes:
+    net: 网络名称。
+    net_args: 网络参数字典。
+    learning_rate: 学习率。
+    max_abs_update: 最大绝对更新值。
+    discount_factor: 折扣因子。
+    td_lambda: TD-lambda 参数。
+    outer_value_cost: 外部价值代价。
+    ema_decay: 指数移动平均衰减率。
+    ema_eps: 指数移动平均 epsilon。
+  """
 
   net: str
   net_args: dict[str, Any]
@@ -85,6 +97,15 @@ class ValueFnConfig:
 
 @chex.dataclass
 class ValueState:
+  """价值函数状态。
+
+  Attributes:
+    params: 代理参数。
+    state: Haiku 状态。
+    opt_state: 优化器状态。
+    adv_ema_state: 优势函数的指数移动平均状态。
+    td_ema_state: 时序差分的指数移动平均状态。
+  """
   params: AgentParams
   state: HaikuState
   opt_state: OptState
@@ -94,13 +115,24 @@ class ValueState:
 
 @chex.dataclass
 class TransformConfig:
+  """变换配置。
+
+  Attributes:
+    source: 源名称。
+    transforms: 变换函数或名称序列。
+  """
   source: str
   transforms: Sequence[str | Callable[[Any], chex.Array]]
 
 
 @chex.dataclass
 class MetaNetInputOption:
-  """Meta network input options."""
+  """元网络输入选项。
+
+  Attributes:
+    base: 基础变换配置序列。
+    action_conditional: 动作条件变换配置序列。
+  """
 
   base: Sequence[TransformConfig]
   action_conditional: Sequence[TransformConfig]
@@ -108,7 +140,13 @@ class MetaNetInputOption:
 
 @chex.dataclass(mappable_dataclass=False, frozen=True)
 class PolicyNetwork:
-  """Collects useful callable transformations of underlying agent network."""
+  """收集底层代理网络的有用可调用变换。
+
+  Attributes:
+    init: 初始化函数，接受 rng, obs, should_reset 并返回 (params, state)。
+    one_step: 单步执行函数。
+    unroll: 展开执行函数。
+  """
 
   # hk-transformed functions.
   init: Callable[
@@ -125,6 +163,13 @@ class PolicyNetwork:
 
 @chex.dataclass
 class EmaState:
+  """指数移动平均状态。
+
+  Attributes:
+    moment1: 一阶矩树。
+    moment2: 二阶矩树。
+    decay_product: 从累积开始的所有衰减的乘积。
+  """
   # The tree of first moments.
   moment1: chex.ArrayTree
   # The tree of second moments.
@@ -135,6 +180,13 @@ class EmaState:
 
 @chex.dataclass
 class EnvironmentTimestep:
+  """环境时间步。
+
+  Attributes:
+    observation: 观测值映射。
+    step_type: 步骤类型。
+    reward: 奖励。
+  """
   observation: Mapping[str, chex.ArrayTree]
   step_type: chex.Array
   reward: chex.Array
@@ -142,7 +194,17 @@ class EnvironmentTimestep:
 
 @chex.dataclass
 class ActorTimestep:
-  """Actor timestep."""
+  """演员时间步。
+
+  Attributes:
+    observations: 观测值。
+    actions: 动作。
+    rewards: 奖励。
+    discounts: 折扣。
+    agent_outs: 代理输出。
+    states: Haiku 状态。
+    logits: Logits。
+  """
 
   observations: chex.ArrayTree
   actions: Any
@@ -154,6 +216,14 @@ class ActorTimestep:
 
   @classmethod
   def from_rollout(cls, rollout: 'ActorRollout') -> 'ActorTimestep':
+    """从 rollout 创建 ActorTimestep。
+
+    Args:
+      rollout: ActorRollout 实例。
+
+    Returns:
+      ActorTimestep 实例。
+    """
     return cls(
         observations=rollout.observations,
         actions=rollout.actions,
@@ -165,6 +235,11 @@ class ActorTimestep:
     )
 
   def to_env_timestep(self) -> 'EnvironmentTimestep':
+    """转换为 EnvironmentTimestep。
+
+    Returns:
+      EnvironmentTimestep 实例。
+    """
     return EnvironmentTimestep(
         observation=self.observations,
         step_type=jnp.where(
@@ -176,29 +251,72 @@ class ActorTimestep:
 
 @chex.dataclass
 class ActorRollout(ActorTimestep):
-  """Stacked actor timesteps.
+  """堆叠的演员时间步。
 
-  Shapes: [D, O, T, B, ...] (by default; can be changed in the code).
+  形状: [D, O, T, B, ...] (默认情况下; 可以在代码中更改)。
 
-  where:
-    D: number of learner devices
-    O: outer rollout length (aka, meta rollout length)
-    T: trajectory length
-    B: batch size
+  其中:
+    D: 学习器设备数量
+    O: 外部 rollout 长度 (即 meta rollout 长度)
+    T: 轨迹长度
+    B: 批次大小
+
+  Attributes:
+    observations: 观测值。
+    actions: 动作。
+    rewards: 奖励。
+    discounts: 折扣。
+    agent_outs: 代理输出。
+    states: Haiku 状态。
+    logits: Logits。
   """
 
   @classmethod
   def from_timestep(cls, timestep: ActorTimestep) -> 'ActorRollout':
+    """从时间步创建 ActorRollout。
+
+    Args:
+      timestep: ActorTimestep 实例。
+
+    Returns:
+      ActorRollout 实例。
+    """
     return cls(**timestep)
 
   def first_state(self, time_axis: int) -> HaikuState:
+    """获取时间轴上的第一个状态。
+
+    Args:
+      time_axis: 时间轴的索引。
+
+    Returns:
+      HaikuState: 第一个状态。
+    """
     index = tuple([np.s_[:]] * (time_axis - 1) + [0])
     return jax.tree.map(lambda x: x[index], self.states)
 
 
 @chex.dataclass
 class ValueOuts:
-  """Value function outputs."""
+  """价值函数输出。
+
+  Attributes:
+    value: 标量价值。
+    target_value: 标量目标价值。
+    rho: 重要性权重。
+    adv: 优势。
+    normalized_adv: 归一化优势。
+    value_target: 价值目标。
+    td: 时序差分 (value_target - value)。
+    normalized_td: 归一化时序差分。
+    qv_adv: Q - V。
+    normalized_qv_adv: 归一化 Q - V。
+    q_value: 标量 Q 值。
+    target_q_value: 标量目标 Q 值。
+    q_target: Q 值目标。
+    q_td: Q 时序差分 (q_target - q_a)。
+    normalized_q_td: 归一化 Q 时序差分。
+  """
 
   value: jax.typing.ArrayLike = 0.0  # Scalar value
   target_value: jax.typing.ArrayLike = 0.0  # Scalar target value
@@ -219,7 +337,18 @@ class ValueOuts:
 
 @chex.dataclass
 class UpdateRuleInputs:
-  """Update rule inputs."""
+  """更新规则输入。
+
+  Attributes:
+    observations: 观测值。
+    actions: 动作。
+    rewards: 奖励。
+    is_terminal: 动作是否为终止动作。
+    agent_out: 代理输出。
+    behaviour_agent_out: 行为代理输出。
+    value_out: 价值函数输出。
+    extra_from_rule: 更新规则中元网络之前的预处理输入（例如优势）。
+  """
 
   observations: chex.ArrayTree
   actions: chex.Array
@@ -233,7 +362,13 @@ class UpdateRuleInputs:
 
   @property
   def should_reset_mask_fwd(self) -> chex.Array:
-    """Returns `should_reset` mask for forward RNNs."""
+    """返回前向 RNN 的 `should_reset` 掩码。
+
+    将 is_terminal 向右移动一步，模仿 step_type.is_first()。
+
+    Returns:
+      chex.Array: 前向掩码。
+    """
     # Shifts is_terminal to the right by a step, mimicking step_type.is_first().
     prepend_non_terminal = jnp.zeros_like(self.is_terminal[:1])
     return jnp.concatenate(
@@ -244,7 +379,13 @@ class UpdateRuleInputs:
 
   @property
   def should_reset_mask_bwd(self) -> chex.Array:
-    """Returns `should_reset` mask for backward RNNs."""
+    """返回后向 RNN 的 `should_reset` 掩码。
+
+    附加一个非终止步骤，用于自举。
+
+    Returns:
+      chex.Array: 后向掩码。
+    """
     # Appends one non-terminal step, for bootstrapping.
     append_non_terminal = jnp.zeros_like(self.is_terminal[:1])
     return jnp.concatenate(
