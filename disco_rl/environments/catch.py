@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Catch environment."""
+"""Catch 环境。"""
 
 import dm_env
 from dm_env import specs
@@ -27,10 +27,14 @@ _ACTIONS = (-1, 0, 1)  # Left, no-op, right.
 
 
 class SingleStreamCatch:
-  """A Catch environment built on the `dm_env.Environment` class."""
+  """基于 `dm_env.Environment` 类的 Catch 环境。"""
 
   def __init__(self, env_settings: configdict.ConfigDict):
-    """Initializes a new Catch environment."""
+    """初始化一个新的 Catch 环境。
+
+    Args:
+      env_settings: 环境配置。
+    """
     self._rows = env_settings.rows
     self._columns = env_settings.columns
     self._rng = np.random.RandomState(env_settings.random_seed)
@@ -42,7 +46,11 @@ class SingleStreamCatch:
     self._reset_next_step = True
 
   def reset(self) -> dm_env.TimeStep:
-    """Returns the first `TimeStep` of a new episode."""
+    """返回新剧集的第一个 `TimeStep`。
+
+    Returns:
+      时间步。
+    """
     self._reset_next_step = False
     self._ball_x = self._rng.randint(self._columns)
     self._ball_y = 0
@@ -50,7 +58,14 @@ class SingleStreamCatch:
     return dm_env.restart(self._observation())
 
   def step(self, action: int) -> dm_env.TimeStep:
-    """Updates the environment according to the action."""
+    """根据动作更新环境。
+
+    Args:
+      action: 动作索引。
+
+    Returns:
+      时间步。
+    """
     if self._reset_next_step:
       return self.reset()
 
@@ -70,7 +85,11 @@ class SingleStreamCatch:
       return dm_env.transition(reward=0.0, observation=self._observation())
 
   def observation_spec(self) -> specs.Array:
-    """Returns the observation spec."""
+    """返回观测规范。
+
+    Returns:
+      观测规范。
+    """
     return specs.Array(
         shape=self._board.shape,
         dtype=self._board.dtype,
@@ -78,7 +97,11 @@ class SingleStreamCatch:
     )
 
   def action_spec(self) -> specs.BoundedArray:
-    """Returns the action spec."""
+    """返回动作规范。
+
+    Returns:
+      动作规范。
+    """
     return specs.BoundedArray((), np.int32, 0, len(_ACTIONS) - 1)
 
   def _observation(self) -> np.ndarray:
@@ -89,13 +112,19 @@ class SingleStreamCatch:
 
 
 class CatchEnvironment(batched_env.BatchedSingleStreamEnvironment):
-  """A batched Catch environment."""
+  """批处理 Catch 环境。"""
 
   def __init__(
       self,
       batch_size: int,
       env_settings: configdict.ConfigDict,
   ) -> None:
+    """初始化批处理 Catch 环境。
+
+    Args:
+      batch_size: 批次大小。
+      env_settings: 环境配置。
+    """
 
     def _single_stream_catch(
         env_settings: configdict.ConfigDict,
@@ -112,7 +141,11 @@ class CatchEnvironment(batched_env.BatchedSingleStreamEnvironment):
 
 
 def get_config() -> configdict.ConfigDict:
-  """Returns default config for CatchEnvironment."""
+  """返回 CatchEnvironment 的默认配置。
+
+  Returns:
+    默认配置字典。
+  """
   return configdict.ConfigDict(
       dict(
           rows=8,

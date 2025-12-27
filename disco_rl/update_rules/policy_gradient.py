@@ -13,10 +13,9 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Policy gradient update rule.
+"""策略梯度更新规则。
 
-This is an example of the well-known Policy Gradient algorithm implemented
-as an update rule.
+这是作为更新规则实现的众所周知的策略梯度算法的示例。
 """
 
 import chex
@@ -29,7 +28,7 @@ from disco_rl.update_rules import base
 
 
 class PolicyGradientUpdate(base.UpdateRule):
-  """Policy gradient update rule (uses value functions)."""
+  """策略梯度更新规则（使用价值函数）。"""
 
   def __init__(
       self,
@@ -41,7 +40,17 @@ class PolicyGradientUpdate(base.UpdateRule):
       p_uniform_prior: float = 0.003,
       target_params_coeff: float = 0.1,
   ) -> None:
-    """Init."""
+    """初始化。
+
+    Args:
+      entropy_cost: 熵代价。
+      normalize_adv: 是否归一化优势。
+      pg_cost: 策略梯度代价。
+      kl_prior_cost: KL 先验代价。
+      p_actor_prior: 演员先验概率。
+      p_uniform_prior: 均匀先验概率。
+      target_params_coeff: 目标参数系数。
+    """
     self._normalize_adv = normalize_adv
     self._target_params_coeff = target_params_coeff
     self._pg_cost = pg_cost
@@ -53,17 +62,41 @@ class PolicyGradientUpdate(base.UpdateRule):
   def init_params(
       self, rng: chex.PRNGKey
   ) -> tuple[types.MetaParams, chex.ArrayTree]:
+    """初始化参数。
+
+    Args:
+      rng: 随机密钥。
+
+    Returns:
+      元参数和初始状态。
+    """
     del rng
     return {'dummy': jnp.array(0.0)}, {}
 
   def flat_output_spec(
       self, single_action_spec: types.ActionSpec
   ) -> types.Specs:
+    """返回平面输出规范。
+
+    Args:
+      single_action_spec: 单个动作规范。
+
+    Returns:
+      输出规范。
+    """
     return dict(logits=utils.get_logits_specs(single_action_spec))
 
   def model_output_spec(
       self, single_action_spec: types.ActionSpec
   ) -> types.Specs:
+    """返回模型输出规范。
+
+    Args:
+      single_action_spec: 单个动作规范。
+
+    Returns:
+      模型输出规范。
+    """
     del single_action_spec
     return dict()
 
@@ -72,6 +105,15 @@ class PolicyGradientUpdate(base.UpdateRule):
       rng: chex.PRNGKey,
       params: types.AgentParams,
   ) -> types.MetaState:
+    """初始化元状态。
+
+    Args:
+      rng: 随机密钥。
+      params: 代理参数。
+
+    Returns:
+      元状态。
+    """
     del rng
     return dict()
 
@@ -87,7 +129,22 @@ class PolicyGradientUpdate(base.UpdateRule):
       rng: chex.PRNGKey,
       axis_name: str | None = None,
   ) -> tuple[types.UpdateRuleOuts, types.MetaState]:
-    """Prepare quantities for the loss (no meta network)."""
+    """准备损失所需的量（无元网络）。
+
+    Args:
+      meta_params: 元参数。
+      params: 代理参数。
+      state: 代理状态。
+      meta_state: 元状态。
+      rollout: rollout。
+      hyper_params: 超参数。
+      unroll_policy_fn: 策略展开函数。
+      rng: 随机密钥。
+      axis_name: 轴名称。
+
+    Returns:
+      更新规则输出和元状态。
+    """
     del meta_params, hyper_params, axis_name, rng
     assert rollout.value_out is not None
     pg_adv = (
@@ -104,7 +161,17 @@ class PolicyGradientUpdate(base.UpdateRule):
       hyper_params: types.HyperParams,
       backprop: bool,
   ) -> tuple[chex.Array, types.UpdateRuleLog]:
-    """Construct policy and value loss."""
+    """构建策略和价值损失。
+
+    Args:
+      rollout: rollout。
+      meta_out: 元输出。
+      hyper_params: 超参数。
+      backprop: 是否反向传播。
+
+    Returns:
+      每步损失和日志。
+    """
     del backprop, hyper_params
     actions = rollout.actions[:-1]
     logits = rollout.agent_out['logits'][:-1]

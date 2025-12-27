@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Utility functions."""
+"""实用函数。"""
 
 import functools
 from typing import Any, Sequence, TypeVar
@@ -33,6 +33,15 @@ _SpecsT = TypeVar('_SpecsT')
 
 
 def shard_across_devices(data: _T, devices: Sequence[jax.Device]) -> _T:
+  """跨设备分片数据。
+
+  Args:
+    data: 要分片的数据。
+    devices: 设备序列。
+
+  Returns:
+    分片后的数据。
+  """
   num_shards = len(devices)
   leaves, treedef = jax.tree.flatten(data)
   split_leaves = [np.split(leaf, num_shards, axis=0) for leaf in leaves]
@@ -42,6 +51,14 @@ def shard_across_devices(data: _T, devices: Sequence[jax.Device]) -> _T:
 
 
 def gather_from_devices(data: _T) -> _T:
+  """从设备收集数据。
+
+  Args:
+    data: 分布在设备上的数据。
+
+  Returns:
+    收集到的数据。
+  """
   return jax.tree.map(
       lambda x: x.reshape((-1, *x.shape[2:])), jax.device_get(data)
   )
@@ -50,6 +67,16 @@ def gather_from_devices(data: _T) -> _T:
 def batch_lookup(
     table: chex.Array, index: chex.Array, num_dims: int = 2
 ) -> chex.Array:
+  """批量查找表中的值。
+
+  Args:
+    table: 查找表。
+    index: 索引。
+    num_dims: 批处理维度数量。
+
+  Returns:
+    查找到的值。
+  """
 
   def _lookup(table: chex.Array, index: chex.Array) -> chex.Array:
     return jax.vmap(lambda x, i: x[i])(table, index)
@@ -60,15 +87,18 @@ def batch_lookup(
 
 
 def broadcast_specs(specs: _SpecsT, n: int, replace: bool = False) -> _SpecsT:
-  """Prepends `n` to the specs' shapes.
+  """将 `n` 预置到规范的形状中。
 
   Args:
-    specs: specs to broadcast.
-    n: a value to prepend to shapes.
-    replace: whether to replace or prepend the first dimension.
+    specs: 要广播的规范。
+    n: 要预置到形状的值。
+    replace: 是否替换或预置第一个维度。
 
   Returns:
-    Broadcasted specs.
+    广播后的规范。
+
+  Raises:
+    ValueError: 如果不支持规范类型。
   """
   f_i = 1 if replace else 0
 
@@ -86,14 +116,31 @@ def broadcast_specs(specs: _SpecsT, n: int, replace: bool = False) -> _SpecsT:
 def tree_stack(
     elems: Sequence[chex.ArrayTree], axis: int = 0
 ) -> chex.ArrayTree:
-  """Stacks a sequence of trees into a single tree."""
+  """将树序列堆叠成单个树。
+
+  Args:
+    elems: 树序列。
+    axis: 堆叠轴。
+
+  Returns:
+    堆叠后的树。
+  """
   return jax.tree.map(lambda *xs: jnp.stack(xs, axis=axis), *elems)
 
 
 def cast_to_single_precision(
     tree_like: _T, cast_ints: bool = True, host_data: bool = False
 ) -> _T:
-  """Casts the data to full precision."""
+  """将数据转换为单精度。
+
+  Args:
+    tree_like: 类似树的数据结构。
+    cast_ints: 是否转换整数。
+    host_data: 是否为主机数据。
+
+  Returns:
+    转换后的数据。
+  """
   if host_data:
 
     def conditional_cast(x):
@@ -113,14 +160,29 @@ def cast_to_single_precision(
 
 
 def get_num_actions_from_spec(spec: types.ActionSpec) -> int:
-  """Returns the number of actions from the action spec."""
+  """从动作规范返回动作数量。
+
+  Args:
+    spec: 动作规范。
+
+  Returns:
+    动作数量。
+  """
   return spec.maximum - spec.minimum + 1
 
 
 def get_logits_specs(
     spec: types.ActionSpec, with_batch_dim: bool = False
 ) -> types.ArraySpec:
-  """Extracts a tree of shapes for logits for the provided spec."""
+  """为提供的规范提取 Logits 形状树。
+
+  Args:
+    spec: 动作规范。
+    with_batch_dim: 是否包含批次维度。
+
+  Returns:
+    Logits 规范。
+  """
   if with_batch_dim:
     spec = spec.replace(shape=spec.shape[1:])
 
@@ -128,14 +190,14 @@ def get_logits_specs(
 
 
 def zeros_like_spec(spec: Any, prepend_shape: tuple[int, ...] = ()):
-  """Returns a tree of zeros from `spec`.
+  """从 `spec` 返回一个零树。
 
   Args:
-    spec: a tree of `array_like`s or specs.
-    prepend_shape: a tuple of integers to prepend to the shapes.
+    spec: `array_like` 或规范的树。
+    prepend_shape: 要预置到形状的整数元组。
 
   Returns:
-    A tree of zero arrays.
+    零数组树。
   """
   return jax.tree.map(
       lambda spec: np.zeros(shape=prepend_shape + spec.shape, dtype=spec.dtype),
@@ -146,18 +208,18 @@ def zeros_like_spec(spec: Any, prepend_shape: tuple[int, ...] = ()):
 def differentiable_policy_gradient_loss(
     logits_t: chex.Array, a_t: chex.Array, adv_t: chex.Array, backprop: bool
 ) -> chex.Array:
-  """Calculates the policy gradient loss with differentiable advantage.
+  """计算具有可微优势的策略梯度损失。
 
-  An optimised version of `rlax.policy_gradient_loss()`.
+  `rlax.policy_gradient_loss()` 的优化版本。
 
   Args:
-    logits_t: a sequence of unnormalized action preferences (shape: [..., |A|]).
-    a_t: a sequence of actions sampled from the preferences `logits_t`.
-    adv_t: the observed or estimated advantages from executing actions `a_t`.
-    backprop: whether to make the loss differentiable.
+    logits_t: 未归一化的动作偏好序列（形状: [..., |A|]）。
+    a_t: 从偏好 `logits_t` 采样的动作序列。
+    adv_t: 执行动作 `a_t` 观察到或估计的优势。
+    backprop: 是否使损失可微。
 
   Returns:
-    Loss (per step) whose gradient corresponds to a policy gradient update.
+    损失（每步），其梯度对应于策略梯度更新。
   """
 
   chex.assert_type([logits_t, a_t, adv_t], [float, int, float])
@@ -171,7 +233,7 @@ def differentiable_policy_gradient_loss(
 
 
 class MovingAverage:
-  """Functions to track EMAs and use them for normalization."""
+  """跟踪 EMA 并将其用于归一化的函数。"""
 
   def __init__(
       self,
@@ -179,18 +241,23 @@ class MovingAverage:
       decay: float = 0.999,
       eps: float = 1e-6,
   ):
-    """Initialize moving average parameters.
+    """初始化移动平均参数。
 
     Args:
-      example_tree: An example of the structure later passed to `update_state`.
-      decay: The decay of the moments. I.e., the learning rate is `1 - decay`.
-      eps: Epsilon used for normalization.
+      example_tree: 稍后传递给 `update_state` 的结构示例。
+      decay: 矩的衰减。即学习率是 `1 - decay`。
+      eps: 用于归一化的 Epsilon。
     """
     self._example_tree = example_tree
     self._decay = decay
     self._eps = eps
 
   def init_state(self) -> types.EmaState:
+    """初始化状态。
+
+    Returns:
+      EMA 状态。
+    """
     zeros = jax.tree.map(
         lambda x: jnp.zeros((), jnp.float32), self._example_tree
     )
@@ -206,7 +273,16 @@ class MovingAverage:
       state: types.EmaState,
       pmean_axis_name: str | None,
   ) -> types.EmaState:
-    """Update moving average stats."""
+    """更新移动平均统计信息。
+
+    Args:
+      tree_like: 类似树的数据。
+      state: 当前 EMA 状态。
+      pmean_axis_name: 并行平均轴名称。
+
+    Returns:
+      更新后的 EMA 状态。
+    """
     squared_tree = jax.tree.map(jnp.square, tree_like)
 
     def _update(
@@ -232,7 +308,14 @@ class MovingAverage:
   def _compute_moments(
       self, state: types.EmaState
   ) -> tuple[chex.ArrayTree, chex.ArrayTree]:
-    """Computes moments, applying 0-debiasing as in the Adam optimizer."""
+    """计算矩，应用 Adam 优化器中的 0 去偏差。
+
+    Args:
+      state: EMA 状态。
+
+    Returns:
+      均值和方差的元组。
+    """
 
     # Factor to account for initializing moments with 0s.
     debias = 1.0 / (1 - state.decay_product)
@@ -256,7 +339,17 @@ class MovingAverage:
       subtract_mean: bool = True,
       root_eps: float = 1e-12,
   ) -> chex.ArrayTree:
-    """Normalize by dividing by second moment and subtracting by mean."""
+    """通过除以二阶矩并减去均值进行归一化。
+
+    Args:
+      value: 要归一化的值。
+      state: EMA 状态。
+      subtract_mean: 是否减去均值。
+      root_eps: 用于根号稳定性的 epsilon。
+
+    Returns:
+      归一化后的值。
+    """
 
     def _normalize(mean, var, val):
       # Two epsilons, instead of one, are used for numerical stability when

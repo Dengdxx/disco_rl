@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Network factory."""
+"""网络工厂。"""
 
 from collections.abc import Iterable, Mapping
 from typing import Any
@@ -30,7 +30,19 @@ from disco_rl.networks import action_models
 
 
 def get_network(name: str, *args, **kwargs) -> types.PolicyNetwork:
-  """Constructs a network."""
+  """构建网络。
+
+  Args:
+    name: 网络名称（例如 'mlp'）。
+    *args: 传递给网络构造函数的位置参数。
+    **kwargs: 传递给网络构造函数的关键字参数。
+
+  Returns:
+    PolicyNetwork 实例。
+
+  Raises:
+    ValueError: 如果网络名称未知。
+  """
 
   def _get_net():
     if name == 'mlp':
@@ -57,7 +69,7 @@ def get_network(name: str, *args, **kwargs) -> types.PolicyNetwork:
 
 
 class MLPHeadNet(hk.Module):
-  """MLP heads according to the update rules' out_spec."""
+  """根据更新规则的 out_spec 的 MLP 头。"""
 
   def __init__(
       self,
@@ -69,6 +81,17 @@ class MLPHeadNet(hk.Module):
       model_kwargs: Mapping[str, Any] | None = None,
       module_name: str | None = None,
   ):
+    """初始化 MLPHeadNet。
+
+    Args:
+      out_spec: 输出规范。
+      action_spec: 动作规范。
+      head_w_init_std: 头部权重初始化标准差。
+      model_out_spec: 模型输出规范。
+      model_arch_name: 模型架构名称。
+      model_kwargs: 模型参数。
+      module_name: 模块名称。
+    """
     super().__init__(name=module_name)
     self._out_spec = out_spec
     self._action_spec = action_spec
@@ -88,11 +111,26 @@ class MLPHeadNet(hk.Module):
   def _embedding_pass(
       self, inputs: chex.ArrayTree, should_reset: chex.Array | None = None
   ) -> chex.Array:
-    """Compute embedding from agent inputs."""
+    """从代理输入计算嵌入。
+
+    Args:
+      inputs: 代理输入。
+      should_reset: 重置标志。
+
+    Returns:
+      嵌入。
+    """
     raise NotImplementedError
 
   def _head_pass(self, embedding: chex.Array) -> dict[str, chex.Array]:
-    """Compute outputs as linear functions of embedding."""
+    """计算嵌入的线性函数输出。
+
+    Args:
+      embedding: 嵌入。
+
+    Returns:
+      输出字典。
+    """
     embedding = hk.Flatten()(embedding)
 
     def _infer(spec: types.ArraySpec) -> chex.Array:
@@ -109,12 +147,29 @@ class MLPHeadNet(hk.Module):
   def unroll(
       self, inputs: chex.ArrayTree, should_reset: chex.Array | None = None
   ) -> dict[str, chex.Array]:
-    """Assumes there is a time dimension in the inputs."""
+    """假设输入中存在时间维度。
+
+    Args:
+      inputs: 输入。
+      should_reset: 重置标志。
+
+    Returns:
+      展开的输出字典。
+    """
     return hk.BatchApply(self.__call__)(inputs, should_reset)
 
   def __call__(
       self, inputs: chex.ArrayTree, should_reset: chex.Array | None = None
   ) -> dict[str, chex.Array]:
+    """执行网络。
+
+    Args:
+      inputs: 输入。
+      should_reset: 重置标志。
+
+    Returns:
+      输出字典。
+    """
     torso = self._embedding_pass(inputs)
     out = self._head_pass(torso)
     if self._model:
@@ -125,7 +180,7 @@ class MLPHeadNet(hk.Module):
 
 
 class MLP(MLPHeadNet):
-  """Simple MLP network."""
+  """简单的 MLP 网络。"""
 
   def __init__(
       self,
@@ -138,6 +193,18 @@ class MLP(MLPHeadNet):
       model_kwargs: Mapping[str, Any] | None = None,
       module_name: str | None = None,
   ) -> None:
+    """初始化 MLP。
+
+    Args:
+      out_spec: 输出规范。
+      dense: 稠密层大小序列。
+      action_spec: 动作规范。
+      head_w_init_std: 头部权重初始化标准差。
+      model_out_spec: 模型输出规范。
+      model_arch_name: 模型架构名称。
+      model_kwargs: 模型参数。
+      module_name: 模块名称。
+    """
     super().__init__(
         out_spec,
         action_spec=action_spec,
@@ -152,6 +219,15 @@ class MLP(MLPHeadNet):
   def _embedding_pass(
       self, inputs: chex.ArrayTree, should_reset: chex.Array | None = None
   ) -> chex.Array:
+    """计算嵌入。
+
+    Args:
+      inputs: 输入。
+      should_reset: 重置标志（未使用）。
+
+    Returns:
+      嵌入。
+    """
     del should_reset
     inputs = [hk.Flatten()(x) for x in jax.tree_util.tree_leaves(inputs)]
     inputs = jnp.concatenate(inputs, axis=-1)

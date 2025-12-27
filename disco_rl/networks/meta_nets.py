@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Meta networks used by update rules."""
+"""更新规则使用的元网络。"""
 
 import functools
 from typing import Any, Callable, Mapping, Sequence
@@ -31,19 +31,27 @@ from disco_rl.update_rules import input_transforms
 
 
 class MetaNet(hk.Module):
-  """Meta Network base class."""
+  """元网络基类。"""
 
   def __call__(
       self,
       inputs: types.UpdateRuleInputs,
       axis_name: str | None,
   ) -> types.UpdateRuleOuts:
-    """Produces outputs needed for update rule's agent loss."""
+    """生成更新规则代理损失所需的输出。
+
+    Args:
+      inputs: 更新规则输入。
+      axis_name: 轴名称。
+
+    Returns:
+      更新规则输出。
+    """
     raise NotImplementedError
 
 
 class LSTM(MetaNet):
-  """Meta network with LSTMs."""
+  """带有 LSTM 的元网络。"""
 
   def __init__(
       self,
@@ -60,6 +68,22 @@ class LSTM(MetaNet):
       state_stddev: float | None = None,
       name: str | None = None,
   ) -> None:
+    """初始化 LSTM 元网络。
+
+    Args:
+      hidden_size: 隐藏层大小。
+      embedding_size: 嵌入大小。
+      prediction_size: 预测大小。
+      meta_rnn_kwargs: 元 RNN 参数。
+      input_option: 输入选项。
+      policy_channels: 策略通道。
+      policy_target_channels: 策略目标通道。
+      policy_target_stddev: 策略目标标准差。
+      output_stddev: 输出标准差。
+      aux_stddev: 辅助标准差。
+      state_stddev: 状态标准差。
+      name: 网络名称。
+    """
     super().__init__(name=name)
     self._hidden_size = hidden_size
     self._embedding_size = embedding_size
@@ -78,6 +102,15 @@ class LSTM(MetaNet):
   def __call__(
       self, inputs: types.UpdateRuleInputs, axis_name: str | None
   ) -> types.UpdateRuleOuts:
+    """执行元网络。
+
+    Args:
+      inputs: 更新规则输入。
+      axis_name: 轴名称。
+
+    Returns:
+      更新规则输出。
+    """
     # Initialize or extract the meta RNN core state.
     initial_meta_rnn_state = self._meta_rnn_core.initial_state()
     meta_rnn_state = hk.get_state(
@@ -158,7 +191,7 @@ class LSTM(MetaNet):
 
 
 class MetaLSTM(hk.Module):
-  """A meta LSTM that processes trajectories and meta targets throughout the agent's lifetime."""
+  """处理轨迹和元目标的元 LSTM，贯穿代理的整个生命周期。"""
 
   def __init__(
       self,
@@ -168,6 +201,15 @@ class MetaLSTM(hk.Module):
       pred_embedding_size: Sequence[int],
       hidden_size: int,
   ):
+    """初始化 MetaLSTM。
+
+    Args:
+      input_option: 输入选项。
+      policy_channels: 策略通道。
+      embedding_size: 嵌入大小。
+      pred_embedding_size: 预测嵌入大小。
+      hidden_size: 隐藏层大小。
+    """
     super().__init__()
     self._input_option = input_option
     self._hidden_size = hidden_size
@@ -183,7 +225,17 @@ class MetaLSTM(hk.Module):
       state: hk.LSTMState,
       axis_name: str | None,
   ) -> hk.LSTMState:
-    """Updates meta_state given a rollout and a rnn_state."""
+    """给定 rollout 和 rnn_state 更新 meta_state。
+
+    Args:
+      inputs: 更新规则输入。
+      meta_out: 更新规则输出。
+      state: LSTM 状态。
+      axis_name: 轴名称。
+
+    Returns:
+      新的 LSTM 状态。
+    """
 
     # Get meta inputs.
     y_net = _batch_mlp(self._pred_embedding_size, num_dims=2)
@@ -218,16 +270,39 @@ class MetaLSTM(hk.Module):
     return new_state
 
   def initial_state(self) -> hk.LSTMState:
-    """Returns an initial a rnn_state."""
+    """返回初始 rnn_state。
+
+    Returns:
+      初始 LSTM 状态。
+    """
     return self._core_constructor().initial_state(batch_size=None)
 
   def output(self, state: hk.LSTMState) -> chex.Array:
-    """Extracts an output vector from a rnn_state."""
+    """从 rnn_state 中提取输出向量。
+
+    Args:
+      state: LSTM 状态。
+
+    Returns:
+      输出向量。
+    """
     return state.hidden  # pytype: disable=attribute-error  # numpy-scalars
 
 
 def _multi_level_extract_by_attr_or_key(x: Any, keys: str) -> Any:
-  """Returns `x[k0][k1]...[kn]` where `keys` is of the form `k0[/k1]`."""
+  """返回 `x[k0][k1]...[kn]`，其中 `keys` 的形式为 `k0[/k1]`。
+
+  Args:
+    x: 嵌套结构。
+    keys: 键路径。
+
+  Returns:
+    提取的值。
+
+  Raises:
+    ValueError: 如果中间值为 None。
+    KeyError: 如果键不存在。
+  """
 
   # Note that the keys can also be attributes of `x`.
   # A simple usage example: assert extract({'a': {'b': {'c': 3}}}, 'a/b/c') == 3
@@ -261,7 +336,19 @@ def _construct_input(
     policy_net: Callable[[chex.Array], chex.Array],
     axis_name: str | None = None,
 ) -> tuple[chex.Array, chex.Array | None]:
-  """Maps update rule inputs to a single vector."""
+  """将更新规则输入映射到单个向量。
+
+  Args:
+    inputs: 更新规则输入。
+    input_option: 输入选项。
+    y_net: Y 网络函数。
+    z_net: Z 网络函数。
+    policy_net: 策略网络函数。
+    axis_name: 轴名称。
+
+  Returns:
+    处理后的输入数组和动作条件嵌入（如果适用）的元组。
+  """
   unroll_len, batch_size = inputs.is_terminal.shape
 
   actions = jax.tree.map(lambda x: x[:-1], inputs.actions)  # [T, B]
@@ -334,13 +421,30 @@ def _construct_input(
 def _maybe_get_initializer(
     stddev: float | None,
 ) -> hk.initializers.Initializer | None:
+  """根据给定的标准差获取初始化器，如果 stddev 为 None 则返回 None。
+
+  Args:
+    stddev: 标准差。
+
+  Returns:
+    初始化器或 None。
+  """
   return hk_init.TruncatedNormal(stddev=stddev) if stddev is not None else None
 
 
 def _multiplicative_interaction(
     x: chex.Array, y: chex.Array, initializer: hk.initializers.Initializer
 ) -> chex.Array:
-  """Returns out = x * Linear(y) if y is not None. Otherwise, returns x."""
+  """如果 y 不为 None，则返回 out = x * Linear(y)。否则返回 x。
+
+  Args:
+    x: 输入数组 x。
+    y: 输入数组 y。
+    initializer: 初始化器。
+
+  Returns:
+    交互后的数组。
+  """
   if isinstance(y, chex.Array) and y.shape:  # not scalar
     # Condition on rnn_state via multiplicative interaction.
     y_embed = hk.Linear(x.shape[-1], w_init=initializer)(y)
@@ -352,10 +456,28 @@ def _multiplicative_interaction(
 def _batch_mlp(
     hiddens: Sequence[int], num_dims: int = 2
 ) -> Callable[[chex.Array], chex.Array]:
+  """创建一个批处理 MLP。
+
+  Args:
+    hiddens: 隐藏层大小序列。
+    num_dims: 批处理维度数量。
+
+  Returns:
+    批处理 MLP 函数。
+  """
   return hk.BatchApply(hk.nets.MLP(hiddens), num_dims=num_dims)
 
 
 def _conv1d_block(x: chex.Array, n_channels: int) -> chex.Array:
+  """1D 卷积块。
+
+  Args:
+    x: 输入数组。
+    n_channels: 输出通道数。
+
+  Returns:
+    处理后的数组。
+  """
   x_avg = jnp.mean(x, axis=2, keepdims=True)  # [T, B, 1, C]
   x_avg = jnp.repeat(x_avg, x.shape[2], axis=2)  # [T, B, A, C]
   x = jnp.concatenate([x, x_avg], axis=-1)  # [T, B, A, 2C]
@@ -365,6 +487,14 @@ def _conv1d_block(x: chex.Array, n_channels: int) -> chex.Array:
 
 
 def _conv1d_net(channels: Sequence[int]) -> Callable[[chex.Array], chex.Array]:
+  """创建一个 1D 卷积网络。
+
+  Args:
+    channels: 每个块的通道数序列。
+
+  Returns:
+    卷积网络函数。
+  """
   return hk.Sequential(
       [functools.partial(_conv1d_block, n_channels=c) for c in channels]
   )

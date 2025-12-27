@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Single-stream environment."""
+"""单流环境。"""
 
 from typing import Any
 
@@ -26,6 +26,14 @@ from disco_rl.environments import base
 
 
 def _to_env_timestep(timestep: dm_env.TimeStep) -> types.EnvironmentTimestep:
+  """将 dm_env.TimeStep 转换为 EnvironmentTimestep。
+
+  Args:
+    timestep: dm_env 时间步。
+
+  Returns:
+    EnvironmentTimestep 实例。
+  """
   return types.EnvironmentTimestep(
       step_type=np.array(timestep.step_type, dtype=np.int32),
       reward=np.array(timestep.reward or 0.0),
@@ -34,26 +42,47 @@ def _to_env_timestep(timestep: dm_env.TimeStep) -> types.EnvironmentTimestep:
 
 
 class UnusedEnvState:
+  """未使用的环境状态占位符。"""
   pass
 
 
 class SingleStreamEnv(base.Environment):
-  """Wrapper for a single-stream environment."""
+  """单流环境的包装器。"""
 
   def __init__(self, env: Any):
+    """初始化单流环境包装器。
+
+    Args:
+      env: 原始环境实例。
+    """
     self._env = env
 
   def reset(
       self, rng_key: chex.PRNGKey
   ) -> tuple[UnusedEnvState | None, types.EnvironmentTimestep]:
-    """Resets the environment."""
+    """重置环境。
+
+    Args:
+      rng_key: 随机数生成器密钥（未使用）。
+
+    Returns:
+      未使用状态和初始环境时间步的元组。
+    """
     del rng_key
     return UnusedEnvState(), _to_env_timestep(self._env.reset())
 
   def step(
       self, state: UnusedEnvState | None, action: int
   ) -> tuple[UnusedEnvState | None, types.EnvironmentTimestep]:
-    """Steps the environment."""
+    """执行一步。
+
+    Args:
+      state: 未使用状态。
+      action: 动作。
+
+    Returns:
+      未使用状态和新的环境时间步的元组。
+    """
     del state
     ts = _to_env_timestep(self._env.step(action))
 
@@ -71,9 +100,17 @@ class SingleStreamEnv(base.Environment):
       return UnusedEnvState(), ts
 
   def single_observation_spec(self) -> types.Specs:
-    """Returns the observation spec."""
+    """返回观测规范。
+
+    Returns:
+      观测规范。
+    """
     return self._env.observation_spec()
 
   def single_action_spec(self) -> types.ActionSpec:
-    """Returns the action spec."""
+    """返回动作规范。
+
+    Returns:
+      动作规范。
+    """
     return self._env.action_spec()

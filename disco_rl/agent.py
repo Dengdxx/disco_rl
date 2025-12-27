@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""An agent that uses update rules to learn from the environment."""
+"""使用更新规则从环境中学习的代理。"""
 
 from absl import logging
 import chex
@@ -37,7 +37,13 @@ from disco_rl.update_rules import policy_gradient
 
 @chex.dataclass(frozen=True)
 class LearnerState:
-  """Dataclass for the learner's state: params, and optimizer/update's state."""
+  """学习者状态的数据类：参数，以及优化器/更新的状态。
+
+  Attributes:
+    params: 代理网络的参数。
+    opt_state: 优化器状态。
+    meta_state: 元学习状态。
+  """
 
   params: hk.Params
   opt_state: optax.OptState
@@ -45,12 +51,11 @@ class LearnerState:
 
 
 class Agent:
-  """A generic agent with an update rule.
+  """带有更新规则的通用代理。
 
-  Its API supports both evaluation and meta-training of the update rule.
+  其 API 支持评估和更新规则的元训练。
 
-  Note that for evaluation/inference only, the update rule's application can be
-  simplified and encapsulated by using its __call__ method.
+  请注意，仅对于评估/推理，更新规则的应用可以通过使用其 __call__ 方法来简化和封装。
   """
 
   update_rule: update_rules_base.UpdateRule
@@ -63,6 +68,14 @@ class Agent:
       agent_settings: config_dict.ConfigDict,
       batch_axis_name: str | None,
   ):
+    """初始化代理。
+
+    Args:
+      single_observation_spec: 单个观测的规范。
+      single_action_spec: 单个动作的规范。
+      agent_settings: 代理设置。
+      batch_axis_name: 批次轴的名称。
+    """
     self.settings = agent_settings
     self.single_observation_spec = single_observation_spec
     self.single_action_spec = single_action_spec
@@ -121,7 +134,14 @@ class Agent:
     return jnp.zeros([batch_size], dtype=bool)
 
   def initial_actor_state(self, rng: chex.PRNGKey) -> types.HaikuState:
-    """Create (potentially empty) initial actor state."""
+    """创建（可能为空的）初始演员状态。
+
+    Args:
+      rng: 随机数生成器密钥。
+
+    Returns:
+      Haiku 状态。
+    """
     dummy_obs = self._dummy_obs(batch_size=1)
     should_reset = self._dummy_should_reset(batch_size=1)
     _, rnn_state = self._network.init(
@@ -132,7 +152,14 @@ class Agent:
     return rnn_state
 
   def initial_learner_state(self, rng_key: chex.PRNGKey) -> LearnerState:
-    """Create the initial learner state."""
+    """创建初始学习者状态。
+
+    Args:
+      rng_key: 随机数生成器密钥。
+
+    Returns:
+      LearnerState 实例。
+    """
     net_rng, state_rng = jax.random.split(rng_key)
     dummy_obs = self._dummy_obs(batch_size=1)
     should_reset = self._dummy_should_reset(batch_size=1)
@@ -151,7 +178,17 @@ class Agent:
       timestep: types.EnvironmentTimestep,
       actor_state: hk.State,
   ) -> tuple[types.ActorTimestep, hk.State]:
-    """Compute actions for the provided timestep."""
+    """计算所提供时间步的动作。
+
+    Args:
+      actor_params: 演员参数。
+      rng: 随机数生成器密钥。
+      timestep: 环境时间步。
+      actor_state: 演员状态。
+
+    Returns:
+      ActorTimestep 和下一个演员状态的元组。
+    """
     # Perform inference on the agent's network.
     should_reset = timestep.step_type == dm_env.StepType.LAST
     agent_outs, next_actor_state = self._network.one_step(
@@ -178,7 +215,16 @@ class Agent:
       agent_net_state: hk.State,
       rollout: types.ActorRollout,
   ) -> tuple[types.AgentOuts, hk.State]:
-    """Unroll the agent's network."""
+    """展开代理的网络。
+
+    Args:
+      agent_net_params: 代理网络参数。
+      agent_net_state: 代理网络状态。
+      rollout: ActorRollout 实例。
+
+    Returns:
+      AgentOuts 和新代理网络状态的元组。
+    """
     # Mask, with 0s only on timesteps of type LAST.
     masks = rollout.discounts[:-1] > 0
 
@@ -254,7 +300,19 @@ class Agent:
       update_rule_params: types.MetaParams,
       is_meta_training: bool,
   ) -> tuple[LearnerState, hk.State, types.LogDict]:
-    """Runs a training step across all learner devices for one rollout."""
+    """为一次 rollout 运行跨所有学习者设备的训练步骤。
+
+    Args:
+      rng: 随机数生成器密钥。
+      rollout: ActorRollout 实例。
+      learner_state: 学习者状态。
+      agent_net_state: 代理网络状态。
+      update_rule_params: 更新规则参数。
+      is_meta_training: 是否为元训练。
+
+    Returns:
+      更新后的 LearnerState，最后的代理网络状态，以及日志字典。
+    """
     reward = rollout.rewards[1:]
     agent_out, _ = self.unroll_net(
         learner_state.params, agent_net_state, rollout
@@ -317,7 +375,11 @@ class Agent:
 
 
 def get_settings_disco():
-  """Disco-103 setting."""
+  """Disco-103 设置。
+
+  Returns:
+    ConfigDict: Disco-103 的配置。
+  """
   return config_dict.ConfigDict(
       dict(
           # discovered objective
@@ -379,7 +441,11 @@ def get_settings_disco():
 
 
 def get_settings_actor_critic():
-  """Actor-Critic setting."""
+  """Actor-Critic 设置。
+
+  Returns:
+    ConfigDict: Actor-Critic 的配置。
+  """
   return config_dict.ConfigDict(
       dict(
           hyper_params=dict(

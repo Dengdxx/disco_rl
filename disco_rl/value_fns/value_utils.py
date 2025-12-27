@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Utils for value functions."""
+"""价值函数工具。"""
 
 import functools
 
@@ -51,43 +51,34 @@ def get_value_outs(
     td_ema_fn: utils.MovingAverage | None = None,
     axis_name: str | None = None,
 ) -> tuple[types.ValueOuts, types.EmaState | None, types.EmaState | None]:
-  """Gets value outs and updates EMA state, handling multi-discount values.
+  """获取价值输出并更新 EMA 状态，处理多折扣值。
 
-  Calculates V-trace targets when only state-values are given or Retrace
-  targets when action-values (or both) are given.
+  当仅给出状态值时计算 V-trace 目标，当给出动作值（或两者都给出）时计算 Retrace 目标。
 
   Args:
-    value_net_out: a scalar value or logits, possibly with extra final dim
-      corresponding to multiple discount factors. [T, B, 1 or num_bins,
-      (num_gamma)]
-    q_net_out: a tree of scalar value or logits per action dim, possibly with
-      extra final dim corresponding to multiple discount factors. [T, B, A, 1 or
-      num_bins, (num_gamma)]
-    target_value_net_out: a target value output for bootstrapping. [T, B, 1 or
-      num_bins, (num_gamma)]
-    target_q_net_out: a target q-value output for bootstrapping. [T, B, A, 1 or
-      num_bins, (num_gamma)]
-    rollout: rollout from actor or preprocessed for update rule.
-    pi_logits: logits of online policy.
-    discount: scalar or vector of discount factors.
-    lambda_: trace parameter.
-    nonlinear_transform: apply signed hyperbolic transform to value if true.
-    categorical_value: expect value net outputs are logits if true.
-    max_abs_value: the maximum absolute value representable by the categorical
-      value function; unused if `categorical_value` is False; must be set when
-      `categorical_value` is True.
-    drop_last: drop final reward, terminal, action if true.
-    adv_ema_state: EMA state of advantages for normalization.
-    adv_ema_fn: EMA state for adv normalization.
-    td_ema_state: EMA state of TD for normalization.
-    td_ema_fn: EMA state for TD normalization.
-    axis_name: reduction axis, used for EMA statistics aggregation.
+    value_net_out: 标量值或 logits，可能具有对应于多个折扣因子的额外最终维度。[T, B, 1 or num_bins, (num_gamma)]。
+    q_net_out: 每个动作维度的标量值或 logits 树，可能具有对应于多个折扣因子的额外最终维度。[T, B, A, 1 or num_bins, (num_gamma)]。
+    target_value_net_out: 用于自举的目标价值输出。[T, B, 1 or num_bins, (num_gamma)]。
+    target_q_net_out: 用于自举的目标 Q 值输出。[T, B, A, 1 or num_bins, (num_gamma)]。
+    rollout: 来自演员的 rollout 或为更新规则预处理的 rollout。
+    pi_logits: 在线策略的 logits。
+    discount: 标量或折扣因子向量。
+    lambda_: 跟踪参数。
+    nonlinear_transform: 如果为真，则对值应用带符号的双曲变换。
+    categorical_value: 如果为真，则期望价值网络输出为 logits。
+    max_abs_value: 分类价值函数可表示的最大绝对值；如果 `categorical_value` 为 False，则未使用；当 `categorical_value` 为 True 时必须设置。
+    drop_last: 如果为真，则丢弃最后的奖励、终止、动作。
+    adv_ema_state: 用于归一化的优势 EMA 状态。
+    adv_ema_fn: 用于优势归一化的 EMA 状态。
+    td_ema_state: 用于归一化的 TD EMA 状态。
+    td_ema_fn: 用于 TD 归一化的 EMA 状态。
+    axis_name: 归约轴，用于 EMA 统计聚合。
 
   Returns:
-    A tuple of:
-      value_outs (containing value and advantage estimates, value loss)
-      an updated adv EMA state
-      an updated TD EMA state
+    一个元组，包含：
+      value_outs (包含价值和优势估计、价值损失)
+      更新后的优势 EMA 状态
+      更新后的 TD EMA 状态
   """
   if adv_ema_state is not None:
     assert isinstance(adv_ema_state, types.EmaState)  # for pytypes
@@ -259,20 +250,20 @@ def estimate_values(
     discount: float = DEFAULT_DISCOUNT,
     lambda_: float = DEFAULT_TD_LAMBDA,
 ) -> types.ValueOuts:
-  """Get value estimates from state-values and rollouts with v-trace.
+  """通过 v-trace 获取状态值和 rollout 的价值估计。
 
   Args:
-    rewards: a [T, B] array with rewards.
-    actions: an array tree of [T, B] shapes with actions.
-    env_discounts: a [T, B] array with episode termination flags.
-    rho: a [T, B] array with importance weights.
-    values: a [T+1, B] array with state values.
-    target_values: a [T+1, B] array with state target values.
-    discount: a scalar discount factor.
-    lambda_: trace parameter for v-trace.
+    rewards: 包含奖励的 [T, B] 数组。
+    actions: 包含动作的 [T, B] 形状的数组树。
+    env_discounts: 包含剧集终止标志的 [T, B] 数组。
+    rho: 包含重要性权重的 [T, B] 数组。
+    values: 包含状态值的 [T+1, B] 数组。
+    target_values: 包含状态目标值的 [T+1, B] 数组。
+    discount: 标量折扣因子。
+    lambda_: v-trace 的跟踪参数。
 
   Returns:
-    value_outs containing value and (unnorm) advantage estimates
+    包含价值和（未归一化）优势估计的 value_outs。
   """
   chex.assert_rank([values, target_values], [2, 2])  # [T, B]
   chex.assert_equal_shape(
@@ -332,22 +323,22 @@ def estimate_q_values(
     discount: float = DEFAULT_DISCOUNT,
     lambda_: float = DEFAULT_TD_LAMBDA,
 ) -> types.ValueOuts:
-  """Get action-value estimates from values and rollouts with Retrace.
+  """通过 Retrace 从值和 rollout 中获取动作值估计。
 
   Args:
-    rewards: a [T, B] array with rewards.
-    actions: an array tree of [T, B] shapes with actions.
-    env_discounts: a [T, B] array with episode termination flags.
-    rho: a [T, B] array with importance weights.
-    values: a [T+1, B] array with state values.
-    target_values: a [T+1, B] array with state values.
-    q_values: an array tree of [T+1, B, A] with action values.
-    target_q_values: an array tree of [T+1, B, A] with target action values.
-    discount: a scalar discount factor.
-    lambda_: trace parameter for Retrace.
+    rewards: 包含奖励的 [T, B] 数组。
+    actions: 包含动作的 [T, B] 形状的数组树。
+    env_discounts: 包含剧集终止标志的 [T, B] 数组。
+    rho: 包含重要性权重的 [T, B] 数组。
+    values: 包含状态值的 [T+1, B] 数组。
+    target_values: 包含状态值的 [T+1, B] 数组。
+    q_values: 包含动作值的 [T+1, B, A] 数组树。
+    target_q_values: 包含目标动作值的 [T+1, B, A] 数组树。
+    discount: 标量折扣因子。
+    lambda_: Retrace 的跟踪参数。
 
   Returns:
-    value_outs containing value and (unnorm) advantage estimates
+    包含价值和（未归一化）优势估计的 value_outs。
   """
 
   chex.assert_rank([values], [2])  # [T, B]
@@ -427,7 +418,17 @@ def get_values_from_net_outs(
     max_abs_value: float | None,
     nonlinear_transform: bool,
 ) -> chex.Array:
-  """Extract scalar values from network outputs."""
+  """从网络输出中提取标量值。
+
+  Args:
+    x: 网络输出。
+    categorical_value: 是否为分类值。
+    max_abs_value: 最大绝对值。
+    nonlinear_transform: 是否应用非线性变换。
+
+  Returns:
+    标量值。
+  """
   chex.assert_rank(x, 3)  # [T, B, 1 or num_bins]
   if categorical_value and max_abs_value is None:
     raise ValueError(
@@ -454,7 +455,19 @@ def extract_scalar_values_from_net_out(
     max_abs_value: float | None,
     nonlinear_transform: bool,
 ) -> tuple[chex.Array, chex.ArrayTree | None]:
-  """Extract scalar values from network outputs."""
+  """从网络输出中提取标量值。
+
+  Args:
+    value_net_out: 价值网络输出。
+    q_net_out: Q 网络输出。
+    pi_logits: 策略 logits。
+    categorical_value: 是否为分类值。
+    max_abs_value: 最大绝对值。
+    nonlinear_transform: 是否应用非线性变换。
+
+  Returns:
+    包含标量值和 Q 值的元组。
+  """
   if categorical_value and max_abs_value is None:
     raise ValueError(
         'The max absolute value (`max_abs_value`) representable'
@@ -497,7 +510,16 @@ def importance_weight(
     mu_logits: chex.ArrayTree,
     actions: chex.ArrayTree,
 ) -> chex.Array:
-  """Calculate importance weights from logits."""
+  """根据 logits 计算重要性权重。
+
+  Args:
+    pi_logits: 目标策略 logits。
+    mu_logits: 行为策略 logits。
+    actions: 动作。
+
+  Returns:
+    重要性权重。
+  """
   log_prob_fn = lambda t, a: distrax.Softmax(t).log_prob(a)
   log_pi_a_tree = jax.tree.map(log_prob_fn, pi_logits, actions)
   log_mu_a_tree = jax.tree.map(log_prob_fn, mu_logits, actions)
@@ -512,7 +534,15 @@ def importance_weight(
 def value_logits_to_scalar(
     value_logits: chex.Array, max_abs_value: float
 ) -> chex.Array:
-  """Converts logits to scalar assuming integer bins centred on zero."""
+  """假设以零为中心的整数箱，将 logits 转换为标量。
+
+  Args:
+    value_logits: 价值 logits。
+    max_abs_value: 最大绝对值。
+
+  Returns:
+    期望值。
+  """
   if max_abs_value <= 0.0:
     raise ValueError(
         f'Max abs value must be greater than 0: {max_abs_value} <= 0.'
@@ -530,7 +560,16 @@ def value_logits_to_scalar(
 def scalar_to_categorical_value(
     num_bins: int, value: chex.Array, max_abs_value: float
 ) -> chex.Array:
-  """Converts scalar to 2-hot probs assuming integer bins centred on zero."""
+  """假设以零为中心的整数箱，将标量转换为 2-hot 概率。
+
+  Args:
+    num_bins: 箱的数量。
+    value: 标量值。
+    max_abs_value: 最大绝对值。
+
+  Returns:
+    概率。
+  """
   if max_abs_value <= 0.0:
     raise ValueError(
         f'Maximum abs value must be greater than 0: {max_abs_value} <= 0.'
@@ -551,7 +590,18 @@ def value_loss_from_target(
     categorical_value: bool = False,
     max_abs_value: float | None = None,
 ) -> chex.Array:
-  """Compute per-step value loss for a scalar per-step target."""
+  """计算标量每步目标的每步价值损失。
+
+  Args:
+    value_net_out: 价值网络输出。
+    value_target: 价值目标。
+    nonlinear_transform: 是否应用非线性变换。
+    categorical_value: 是否为分类值。
+    max_abs_value: 最大绝对值。
+
+  Returns:
+    每步损失。
+  """
   if categorical_value and max_abs_value is None:
     raise ValueError(
         'The max absolute value (`max_abs_value`) representable'
@@ -586,7 +636,18 @@ def value_loss_from_td(
     categorical_value: bool = False,
     max_abs_value: float | None = None,
 ) -> chex.Array:
-  """Compute per-step value loss for a scalar per-step TD."""
+  """计算标量每步 TD 的每步价值损失。
+
+  Args:
+    value_net_out: 价值网络输出。
+    td: 时序差分。
+    nonlinear_transform: 是否应用非线性变换。
+    categorical_value: 是否为分类值。
+    max_abs_value: 最大绝对值。
+
+  Returns:
+    每步损失。
+  """
   if categorical_value and max_abs_value is None:
     raise ValueError(
         'The max absolute value (`max_abs_value`) representable'

@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""DiscoRL update rule."""
+"""DiscoRL 更新规则。"""
 
 import chex
 import distrax
@@ -31,7 +31,7 @@ from disco_rl.value_fns import value_utils
 
 
 class DiscoUpdateRule(base.UpdateRule):
-  """Discoved update rule, as described in the paper."""
+  """如论文所述的 Discovery 更新规则。"""
 
   def __init__(
       self,
@@ -42,7 +42,16 @@ class DiscoUpdateRule(base.UpdateRule):
       moving_average_decay: float = 0.99,
       moving_average_eps: float = 1e-6,
   ) -> None:
-    """The meta-network constructor."""
+    """元网络构造函数。
+
+    Args:
+      net: 网络配置。
+      value_discount: 价值折扣因子。
+      max_abs_value: 最大绝对价值。
+      num_bins: 箱数。
+      moving_average_decay: 移动平均衰减。
+      moving_average_eps: 移动平均 epsilon。
+    """
     super().__init__()
     self._prediction_size = net.prediction_size
     self._value_discount = value_discount
@@ -69,6 +78,14 @@ class DiscoUpdateRule(base.UpdateRule):
   def init_params(
       self, rng: chex.PRNGKey
   ) -> tuple[types.MetaParams, chex.ArrayTree]:
+    """初始化元参数。
+
+    Args:
+      rng: 随机密钥。
+
+    Returns:
+      元参数和初始元网络状态。
+    """
     dummy_input = self._get_dummy_input(
         include_behaviour_out=True, include_agent_adv=True
     )
@@ -82,7 +99,15 @@ class DiscoUpdateRule(base.UpdateRule):
       rng: chex.PRNGKey,
       params: types.AgentParams,
   ) -> types.MetaState:
-    """Create meta_state."""
+    """创建元状态。
+
+    Args:
+      rng: 随机密钥。
+      params: 代理参数。
+
+    Returns:
+      元状态。
+    """
     _, meta_rnn_state = self.init_params(rng)
     meta_state = dict(
         rnn_state=meta_rnn_state,
@@ -95,6 +120,14 @@ class DiscoUpdateRule(base.UpdateRule):
   def flat_output_spec(
       self, single_action_spec: types.ActionSpec
   ) -> types.Specs:
+    """返回代理的无条件输出规范。
+
+    Args:
+      single_action_spec: 单个动作规范。
+
+    Returns:
+      输出规范。
+    """
     return dict(
         logits=utils.get_logits_specs(single_action_spec),
         y=types.ArraySpec((self._prediction_size,), jnp.float32),
@@ -103,6 +136,14 @@ class DiscoUpdateRule(base.UpdateRule):
   def model_output_spec(
       self, single_action_spec: types.ActionSpec
   ) -> types.Specs:
+    """返回代理的动作条件输出规范。
+
+    Args:
+      single_action_spec: 单个动作规范。
+
+    Returns:
+      模型输出规范。
+    """
     return dict(
         z=types.ArraySpec((self._prediction_size,), jnp.float32),
         aux_pi=utils.get_logits_specs(single_action_spec),
@@ -121,6 +162,22 @@ class DiscoUpdateRule(base.UpdateRule):
       rng: chex.PRNGKey,
       axis_name: str | None = None,
   ) -> tuple[types.UpdateRuleOuts, types.MetaState]:
+    """展开元网络以准备代理的损失。
+
+    Args:
+      meta_params: 元参数。
+      params: 代理参数。
+      state: 代理状态。
+      meta_state: 元状态。
+      rollout: rollout。
+      hyper_params: 超参数。
+      unroll_policy_fn: 策略展开函数。
+      rng: 随机密钥。
+      axis_name: 轴名称。
+
+    Returns:
+      元网络输出和新元状态。
+    """
     del rng
     t, b = rollout.rewards.shape
 
@@ -214,7 +271,17 @@ class DiscoUpdateRule(base.UpdateRule):
       hyper_params: types.HyperParams,
       backprop: bool,
   ) -> tuple[chex.Array, types.UpdateRuleLog]:
-    """Defines an agent loss."""
+    """定义代理损失。
+
+    Args:
+      rollout: rollout。
+      meta_out: 元输出。
+      hyper_params: 超参数。
+      backprop: 是否反向传播。
+
+    Returns:
+      每步损失和日志。
+    """
     t, b = rollout.rewards.shape
 
     chex.assert_shape((rollout.rewards, rollout.is_terminal), (t, b))
@@ -299,7 +366,16 @@ class DiscoUpdateRule(base.UpdateRule):
       meta_out: types.UpdateRuleOuts | None,
       hyper_params: types.HyperParams,
   ) -> tuple[chex.Array, types.UpdateRuleLog]:
-    """Value losses that do not interfere with meta-gradient."""
+    """不干扰元梯度的价值损失。
+
+    Args:
+      rollout: rollout。
+      meta_out: 元输出。
+      hyper_params: 超参数。
+
+    Returns:
+      每步损失和日志。
+    """
     assert meta_out is not None
     td = meta_out['q_td']
 
@@ -324,12 +400,12 @@ class DiscoUpdateRule(base.UpdateRule):
 
 
 def get_input_option() -> types.MetaNetInputOption:
-  """Returns the input option for the meta-network.
+  """返回元网络的输入选项。
 
-  Detailed description can be found in the paper.
+  详细描述可以在论文中找到。
 
   Returns:
-    The input option for the meta-network.
+    元网络的输入选项。
   """
   return types.MetaNetInputOption(
       base=(
